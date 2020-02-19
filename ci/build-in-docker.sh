@@ -32,5 +32,7 @@ if [ "$TRAVIS" != "" ]; then
     DOCKER_OPTS+=("--security-opt" "seccomp:unconfined")
 fi
 
-docker run -e ARCH -e TRAVIS_BUILD_NUMBER --rm -i "${DOCKER_OPTS[@]}" -v "$here"/..:/ws:ro "$IMAGE" \
+# it's important not to build in /dev/shm, don't ask me why, but squashfuse's configure doesn't want to run
+# took me way too long to figure out...
+docker run -e ARCH -e TRAVIS_BUILD_NUMBER -e CI=1 --rm -i "${DOCKER_OPTS[@]}" -v "$here"/..:/ws:ro "$IMAGE" \
     bash -xc "cd /ws && source ci/build.sh"
