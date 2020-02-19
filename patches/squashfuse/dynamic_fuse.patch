@@ -1,33 +1,34 @@
+diff --git a/Makefile.am b/Makefile.am
+index 1507525..0d5c4e8 100644
 --- a/Makefile.am
 +++ b/Makefile.am
 @@ -1,6 +1,7 @@
- COMPRESSION_LIBS = $(ZLIB_LIBS) $(XZ_LIBS) $(LZO_LIBS) $(LZ4_LIBS)
+ COMPRESSION_LIBS = $(ZLIB_LIBS) $(XZ_LIBS) $(LZO_LIBS) $(LZ4_LIBS) $(ZSTD_LIBS)
  
  ACLOCAL_AMFLAGS = -I m4 --install
 +AM_CFLAGS = -fno-strict-aliasing -DENABLE_DLOPEN
  
  # Suppress AppleDouble
  if MAKE_EXPORT
-@@ -19,13 +20,13 @@
- # Main library: libsquashfuse
- libsquashfuse_la_SOURCES = swap.c cache.c table.c dir.c file.c fs.c \
- 	decompress.c xattr.c hash.c stack.c traverse.c util.c \
--	nonstd-pread.c nonstd-stat.c \
-+	nonstd-pread.c nonstd-stat.c squashfuse_dlopen.c \
- 	squashfs_fs.h common.h nonstd-internal.h nonstd.h swap.h cache.h table.h \
- 	dir.h file.h decompress.h xattr.h squashfuse.h hash.h stack.h traverse.h \
--	util.h fs.h
-+	util.h fs.h squashfuse_dlopen.h
- libsquashfuse_la_CPPFLAGS = $(ZLIB_CPPFLAGS) $(XZ_CPPFLAGS) $(LZO_CPPFLAGS) \
- 	$(LZ4_CPPFLAGS)
--libsquashfuse_la_LIBADD =
-+libsquashfuse_la_LIBADD = -ldl
+@@ -49,10 +50,9 @@ endif
  
- # Helper for FUSE clients: libfuseprivate
- libfuseprivate_la_SOURCES = fuseprivate.c nonstd-makedev.c nonstd-enoattr.c \
+ # Low-level squashfuse_ll, if supported
+ if SQ_WANT_LOWLEVEL
+-bin_PROGRAMS += squashfuse_ll
+-squashfuse_ll_SOURCES = ll.c ll_inode.c nonstd-daemon.c ll.h
+-squashfuse_ll_CPPFLAGS = $(FUSE_CPPFLAGS)
+-squashfuse_ll_LDADD = libsquashfuse.la libfuseprivate.la $(COMPRESSION_LIBS) \
++libsquashfuse_ll_la_SOURCES = ll.c ll_inode.c nonstd-daemon.c ll.h
++libsquashfuse_ll_la_CPPFLAGS = $(FUSE_CPPFLAGS)
++libsquashfuse_ll_la_LIBADD = libsquashfuse.la libfuseprivate.la $(COMPRESSION_LIBS) \
+   $(FUSE_LIBS)
+ 
+ endif
+diff --git a/fuseprivate.c b/fuseprivate.c
+index fe39497..b79f0ab 100644
 --- a/fuseprivate.c
 +++ b/fuseprivate.c
-@@ -94,15 +94,17 @@
+@@ -94,15 +94,17 @@ int sqfs_listxattr(sqfs *fs, sqfs_inode *inode, char *buf, size_t *size) {
  }
  
  void sqfs_usage(char *progname, bool fuse_usage) {
@@ -48,6 +49,8 @@
  	}
  	exit(-2);
  }
+diff --git a/fuseprivate.h b/fuseprivate.h
+index a9caab1..a11765d 100644
 --- a/fuseprivate.h
 +++ b/fuseprivate.h
 @@ -27,7 +27,10 @@
@@ -62,6 +65,8 @@
  
  #include <sys/stat.h>
  
+diff --git a/hl.c b/hl.c
+index 091e73e..b474f80 100644
 --- a/hl.c
 +++ b/hl.c
 @@ -33,6 +33,7 @@
@@ -72,7 +77,7 @@
  
  typedef struct sqfs_hl sqfs_hl;
  struct sqfs_hl {
-@@ -42,9 +43,10 @@
+@@ -42,9 +43,10 @@ struct sqfs_hl {
  
  static sqfs_err sqfs_hl_lookup(sqfs **fs, sqfs_inode *inode,
  		const char *path) {
@@ -84,7 +89,7 @@
  	*fs = &hl->fs;
  	if (inode)
  		*inode = hl->root; /* copy */
-@@ -67,7 +69,8 @@
+@@ -67,7 +69,8 @@ static void sqfs_hl_op_destroy(void *user_data) {
  }
  
  static void *sqfs_hl_op_init(struct fuse_conn_info *conn) {
@@ -94,7 +99,7 @@
  }
  
  static int sqfs_hl_op_getattr(const char *path, struct stat *st) {
-@@ -264,7 +267,16 @@
+@@ -264,7 +267,16 @@ static sqfs_hl *sqfs_hl_open(const char *path, size_t offset) {
  	return NULL;
  }
  
@@ -111,7 +116,7 @@
  	struct fuse_args args;
  	sqfs_opts opts;
  	sqfs_hl *hl;
-@@ -299,7 +311,7 @@
+@@ -299,7 +311,7 @@ int main(int argc, char *argv[]) {
  	opts.image = NULL;
  	opts.mountpoint = 0;
  	opts.offset = 0;
@@ -120,7 +125,7 @@
  		sqfs_usage(argv[0], true);
  	if (!opts.image)
  		sqfs_usage(argv[0], true);
-@@ -308,8 +320,9 @@
+@@ -308,8 +320,9 @@ int main(int argc, char *argv[]) {
  	if (!hl)
  		return -1;
  	
@@ -132,63 +137,11 @@
 +	CLOSE_LIBRARY;
  	return ret;
  }
---- a/ll.h
-+++ b/ll.h
-@@ -27,7 +27,10 @@
- 
- #include "squashfuse.h"
- 
--#include <fuse_lowlevel.h>
-+#include "squashfuse_dlopen.h"
-+#ifndef ENABLE_DLOPEN
-+#	include <fuse_lowlevel.h>
-+#endif
- 
- typedef struct sqfs_ll sqfs_ll;
- struct sqfs_ll {
---- a/ll_inode.c
-+++ b/ll_inode.c
-@@ -348,12 +348,14 @@
- 
- 
- sqfs_err sqfs_ll_iget(fuse_req_t req, sqfs_ll_i *lli, fuse_ino_t i) {
-+	LOAD_SYMBOL(void *,fuse_req_userdata,(fuse_req_t req));
-+	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
- 	sqfs_err err = SQFS_OK;
--	lli->ll = fuse_req_userdata(req);
-+	lli->ll = DL(fuse_req_userdata)(req);
- 	if (i != SQFS_FUSE_INODE_NONE) {
- 		err = sqfs_ll_inode(lli->ll, &lli->inode, i);
- 		if (err)
--			fuse_reply_err(req, ENOENT);
-+			DL(fuse_reply_err)(req, ENOENT);
- 	}
- 	return err;
- }
---- a/nonstd-daemon.c
-+++ b/nonstd-daemon.c
-@@ -28,11 +28,16 @@
- #include "nonstd-internal.h"
- 
- #include <unistd.h>
--#include <fuse_lowlevel.h>
-+
-+#include "squashfuse_dlopen.h"
-+#ifndef ENABLE_DLOPEN
-+#	include <fuse_lowlevel.h>
-+#endif
- 
- int sqfs_ll_daemonize(int fg) {
- 	#if HAVE_DECL_FUSE_DAEMONIZE
--		return fuse_daemonize(fg);
-+		LOAD_SYMBOL(int,fuse_daemonize,(int foreground));
-+		return DL(fuse_daemonize)(fg);
- 	#else
- 		return daemon(0,0);
- 	#endif
+diff --git a/ll.c b/ll.c
+index 0065639..6d127b3 100644
 --- a/ll.c
 +++ b/ll.c
-@@ -38,37 +38,41 @@
+@@ -53,6 +53,8 @@ static struct fuse_session *fuse_instance = NULL;
  
  static void sqfs_ll_op_getattr(fuse_req_t req, fuse_ino_t ino,
  		struct fuse_file_info *fi) {
@@ -196,7 +149,8 @@
 +	LOAD_SYMBOL(int,fuse_reply_attr,(fuse_req_t req, const struct stat *attr, double attr_timeout));
  	sqfs_ll_i lli;
  	struct stat st;
- 	if (sqfs_ll_iget(req, &lli, ino))
+ 	last_access = time(NULL);
+@@ -60,15 +62,17 @@ static void sqfs_ll_op_getattr(fuse_req_t req, fuse_ino_t ino,
  		return;
  	
  	if (sqfs_stat(&lli.ll->fs, &lli.inode, &st)) {
@@ -214,8 +168,9 @@
 +	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
 +	LOAD_SYMBOL(int,fuse_reply_open,(fuse_req_t req, const struct fuse_file_info *fi));
  	sqfs_ll_i *lli;
+ 	last_access = time(NULL);
  	
- 	fi->fh = (intptr_t)NULL;
+@@ -76,17 +80,17 @@ static void sqfs_ll_op_opendir(fuse_req_t req, fuse_ino_t ino,
  	
  	lli = malloc(sizeof(*lli));
  	if (!lli) {
@@ -230,53 +185,13 @@
 +			DL(fuse_reply_err)(req, ENOTDIR);
  		} else {
  			fi->fh = (intptr_t)lli;
+ 			++open_refcount;
 -			fuse_reply_open(req, fi);
 +			DL(fuse_reply_open)(req, fi);
  			return;
  		}
  	}
-@@ -77,28 +81,35 @@
- 
- static void sqfs_ll_op_create(fuse_req_t req, fuse_ino_t parent, const char *name,
- 			      mode_t mode, struct fuse_file_info *fi) {
--	fuse_reply_err(req, EROFS);
-+	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
-+	DL(fuse_reply_err)(req, EROFS);
- }
- 
- static void sqfs_ll_op_releasedir(fuse_req_t req, fuse_ino_t ino,
- 		struct fuse_file_info *fi) {
- 	free((sqfs_ll_i*)(intptr_t)fi->fh);
--	fuse_reply_err(req, 0); /* yes, this is necessary */
-+	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
-+	DL(fuse_reply_err)(req, 0); /* yes, this is necessary */
- }
- 
- static size_t sqfs_ll_add_direntry(fuse_req_t req, char *buf, size_t bufsize,
- 		const char *name, const struct stat *st, off_t off) {
- 	#if HAVE_DECL_FUSE_ADD_DIRENTRY
--		return fuse_add_direntry(req, buf, bufsize, name, st, off);
-+		LOAD_SYMBOL(size_t,fuse_add_direntry,(fuse_req_t req, char *buf, size_t bufsize, const char *name, const struct stat *stbuf, off_t off));
-+		return DL(fuse_add_direntry)(req, buf, bufsize, name, st, off);
- 	#else
--		size_t esize = fuse_dirent_size(strlen(name));
-+		LOAD_SYMBOL(size_t,fuse_dirent_size(size_t namelen));
-+		LOAD_SYMBOL(char *,fuse_add_dirent,(char *buf, const char *name, const struct stat *stbuf, off_t off));
-+		size_t esize = DL(fuse_dirent_size)(strlen(name));
- 		if (bufsize >= esize)
--			fuse_add_dirent(buf, name, st, off);
-+			DL(fuse_add_dirent)(buf, name, st, off);
- 		return esize;
- 	#endif
- }
- static void sqfs_ll_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
- 		off_t off, struct fuse_file_info *fi) {
-+	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
-+	LOAD_SYMBOL(int,fuse_reply_buf,(fuse_req_t req, const char *buf, size_t size));
- 	sqfs_err sqerr;
- 	sqfs_dir dir;
- 	sqfs_name namebuf;
-@@ -135,14 +146,16 @@
+@@ -157,14 +161,16 @@ static void sqfs_ll_op_readdir(fuse_req_t req, fuse_ino_t ino, size_t size,
  	}
  	
  	if (err)
@@ -295,7 +210,7 @@
  	sqfs_ll_i lli;
  	sqfs_err sqerr;
  	sqfs_name namebuf;
-@@ -154,7 +167,7 @@
+@@ -177,7 +183,7 @@ static void sqfs_ll_op_lookup(fuse_req_t req, fuse_ino_t parent,
  		return;
  	
  	if (!S_ISDIR(lli.inode.base.mode)) {
@@ -304,7 +219,7 @@
  		return;
  	}
  	
-@@ -162,55 +175,58 @@
+@@ -185,11 +191,11 @@ static void sqfs_ll_op_lookup(fuse_req_t req, fuse_ino_t parent,
  	sqerr = sqfs_dir_lookup(&lli.ll->fs, &lli.inode, name, strlen(name), &entry,
  		&found);
  	if (sqerr) {
@@ -318,10 +233,7 @@
  		return;
  	}
  	
- 	if (sqfs_inode_get(&lli.ll->fs, &inode, sqfs_dentry_inode(&entry))) {
--		fuse_reply_err(req, ENOENT);
-+		DL(fuse_reply_err)(req, ENOENT);
- 	} else {
+@@ -199,43 +205,46 @@ static void sqfs_ll_op_lookup(fuse_req_t req, fuse_ino_t parent,
  		struct fuse_entry_param fentry;
  		memset(&fentry, 0, sizeof(fentry));
  		if (sqfs_stat(&lli.ll->fs, &inode, &fentry.attr)) {
@@ -345,6 +257,7 @@
  	sqfs_inode *inode;
  	sqfs_ll *ll;
  	
+ 	last_access = time(NULL);
  	if (fi->flags & (O_WRONLY | O_RDWR)) {
 -		fuse_reply_err(req, EROFS);
 +		DL(fuse_reply_err)(req, EROFS);
@@ -358,8 +271,7 @@
  		return;
  	}
  	
--	ll = fuse_req_userdata(req);
-+	ll = DL(fuse_req_userdata)(req);
+ 	ll = fuse_req_userdata(req);
  	if (sqfs_ll_inode(ll, inode, ino)) {
 -		fuse_reply_err(req, ENOENT);
 +		DL(fuse_reply_err)(req, ENOENT);
@@ -369,18 +281,21 @@
  	} else {
  		fi->fh = (intptr_t)inode;
  		fi->keep_cache = 1;
+ 		++open_refcount;
 -		fuse_reply_open(req, fi);
 +		DL(fuse_reply_open)(req, fi);
  		return;
  	}
  	free(inode);
-@@ -218,37 +234,43 @@
+@@ -243,23 +252,27 @@ static void sqfs_ll_op_open(fuse_req_t req, fuse_ino_t ino,
  
  static void sqfs_ll_op_release(fuse_req_t req, fuse_ino_t ino,
  		struct fuse_file_info *fi) {
 +	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
  	free((sqfs_inode*)(intptr_t)fi->fh);
  	fi->fh = 0;
+ 	last_access = time(NULL);
+ 	--open_refcount;
 -	fuse_reply_err(req, 0);
 +	DL(fuse_reply_err)(req, 0);
  }
@@ -403,6 +318,7 @@
  		return;
  	}
  	
+@@ -267,16 +280,18 @@ static void sqfs_ll_op_read(fuse_req_t req, fuse_ino_t ino,
  	osize = size;
  	err = sqfs_read_range(&ll->fs, inode, off, &osize, buf);
  	if (err) {
@@ -424,7 +340,7 @@
  	char *dst;
  	size_t size;
  	sqfs_ll_i lli;
-@@ -256,21 +278,24 @@
+@@ -285,21 +300,24 @@ static void sqfs_ll_op_readlink(fuse_req_t req, fuse_ino_t ino) {
  		return;
  	
  	if (!S_ISLNK(lli.inode.base.mode)) {
@@ -454,7 +370,7 @@
  	sqfs_ll_i lli;
  	char *buf;
  	int ferr;
-@@ -280,17 +305,17 @@
+@@ -310,17 +328,17 @@ static void sqfs_ll_op_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size) {
  
  	buf = NULL;
  	if (size && !(buf = malloc(size))) {
@@ -476,7 +392,7 @@
  	}
  	free(buf);
  }
-@@ -301,13 +326,16 @@
+@@ -331,13 +349,16 @@ static void sqfs_ll_op_getxattr(fuse_req_t req, fuse_ino_t ino,
  		, uint32_t position
  #endif
  		) {
@@ -494,7 +410,7 @@
  		return;
  	}
  #endif
-@@ -316,26 +344,27 @@
+@@ -347,27 +368,28 @@ static void sqfs_ll_op_getxattr(fuse_req_t req, fuse_ino_t ino,
  		return;
  	
  	if (!(buf = malloc(size)))
@@ -522,6 +438,7 @@
  		unsigned long nlookup) {
 +	LOAD_SYMBOL(void,fuse_reply_none,(fuse_req_t req));
  	sqfs_ll_i lli;
+ 	last_access = time(NULL);
  	sqfs_ll_iget(req, &lli, SQFS_FUSE_INODE_NONE);
  	lli.ll->ino_forget(lli.ll, ino, nlookup);
 -	fuse_reply_none(req);
@@ -529,7 +446,7 @@
  }
  
  
-@@ -348,23 +377,27 @@
+@@ -380,23 +402,27 @@ typedef struct {
  
  static sqfs_err sqfs_ll_mount(sqfs_ll_chan *ch, const char *mountpoint,
  		struct fuse_args *args) {
@@ -562,10 +479,27 @@
  	#endif
  }
  
-@@ -391,6 +424,19 @@
+@@ -412,12 +438,13 @@ static void sqfs_ll_unmount(sqfs_ll_chan *ch, const char *mountpoint) {
+  */
+ 
+ static void alarm_tick(int sig) {
++	LOAD_SYMBOL(void,fuse_session_exit,(struct fuse_session *se));
+ 	if (!fuse_instance || idle_timeout_secs == 0) {
+ 		return;
+ 	}
+ 
+ 	if (open_refcount == 0 && time(NULL) - last_access > idle_timeout_secs) {
+-		fuse_session_exit(fuse_instance);
++		DL(fuse_session_exit)(fuse_instance);
+ 		return;
+ 	}
+ 	alarm(1);  /* always reset our alarm */
+@@ -469,7 +496,20 @@ static sqfs_ll *sqfs_ll_open(const char *path, size_t offset) {
+ 	return NULL;
  }
  
- int fusefs_main(int argc, char *argv[], void (*mounted) (void)) {
+-int main(int argc, char *argv[]) {
++int fusefs_main(int argc, char *argv[], void (*mounted) (void)) {
 +	LOAD_SYMBOL(int,fuse_opt_parse,(struct fuse_args *args, void *data, const struct fuse_opt opts[], fuse_opt_proc_t proc));
 +	LOAD_SYMBOL(int,fuse_parse_cmdline,(struct fuse_args *args, char **mountpoint, int *multithreaded, int *foreground));
 +	LOAD_SYMBOL(struct fuse_session *,fuse_lowlevel_new,(struct fuse_args *args, const struct fuse_lowlevel_ops *op, size_t op_size, void *userdata));
@@ -582,7 +516,7 @@
  	struct fuse_args args;
  	sqfs_opts opts;
  	
-@@ -429,10 +475,10 @@
+@@ -509,10 +549,10 @@ int main(int argc, char *argv[]) {
  	opts.image = NULL;
  	opts.mountpoint = 0;
  	opts.offset = 0;
@@ -595,46 +529,86 @@
  		sqfs_usage(argv[0], true);
  	if (mountpoint == NULL)
  		sqfs_usage(argv[0], true);
-@@ -445,33 +491,34 @@
- 		sqfs_ll_chan ch;
- 		err = -1;
- 		if (sqfs_ll_mount(&ch, mountpoint, &args) == SQFS_OK) {
--			struct fuse_session *se = fuse_lowlevel_new(&args,
-+			struct fuse_session *se = DL(fuse_lowlevel_new)(&args,
- 				&sqfs_ll_ops, sizeof(sqfs_ll_ops), ll);	
- 			if (se != NULL) {
- 				if (sqfs_ll_daemonize(fg) != -1) {
--					if (fuse_set_signal_handlers(se) != -1) {
--						fuse_session_add_chan(se, ch.ch);
-+					if (DL(fuse_set_signal_handlers)(se) != -1) {
-+						DL(fuse_session_add_chan)(se, ch.ch);
- 				if (mounted)
- 				  mounted ();
+@@ -534,6 +574,8 @@ int main(int argc, char *argv[]) {
+ 							setup_idle_timeout(se, opts.idle_timeout_secs);
+ 						}
+ 						fuse_session_add_chan(se, ch.ch);
++				if (mounted)
++				  mounted ();
  						/* FIXME: multithreading */
--						err = fuse_session_loop(se);
--						fuse_remove_signal_handlers(se);
-+						err = DL(fuse_session_loop)(se);
-+						DL(fuse_remove_signal_handlers)(se);
- 						#if HAVE_DECL_FUSE_SESSION_REMOVE_CHAN
--							fuse_session_remove_chan(ch.ch);
-+							DL(fuse_session_remove_chan)(ch.ch);
- 						#endif
- 					}
- 				}
--				fuse_session_destroy(se);
-+				DL(fuse_session_destroy)(se);
- 			}
- 			sqfs_ll_destroy(ll);
+ 						err = fuse_session_loop(se);
+ 						teardown_idle_timeout();
+@@ -549,9 +591,12 @@ int main(int argc, char *argv[]) {
  			sqfs_ll_unmount(&ch, mountpoint);
  		}
  	}
 -	fuse_opt_free_args(&args);
 +	DL(fuse_opt_free_args)(&args);
- 	if (mounted)
- 	  rmdir (mountpoint);
++	if (mounted)
++		rmdir(mountpoint);
  	free(ll);
  	free(mountpoint);
 +	CLOSE_LIBRARY;
  	
  	return -err;
  }
+diff --git a/ll.h b/ll.h
+index 81ce927..6955eff 100644
+--- a/ll.h
++++ b/ll.h
+@@ -27,7 +27,10 @@
+ 
+ #include "squashfuse.h"
+ 
+-#include <fuse_lowlevel.h>
++#include "squashfuse_dlopen.h"
++#ifndef ENABLE_DLOPEN
++#	include <fuse_lowlevel.h>
++#endif
+ 
+ typedef struct sqfs_ll sqfs_ll;
+ struct sqfs_ll {
+diff --git a/ll_inode.c b/ll_inode.c
+index 9e729d4..5f813ad 100644
+--- a/ll_inode.c
++++ b/ll_inode.c
+@@ -348,12 +348,14 @@ sqfs_err sqfs_ll_inode(sqfs_ll *ll, sqfs_inode *inode, fuse_ino_t i) {
+ 
+ 
+ sqfs_err sqfs_ll_iget(fuse_req_t req, sqfs_ll_i *lli, fuse_ino_t i) {
++	LOAD_SYMBOL(void *,fuse_req_userdata,(fuse_req_t req));
++	LOAD_SYMBOL(int,fuse_reply_err,(fuse_req_t req, int err));
+ 	sqfs_err err = SQFS_OK;
+-	lli->ll = fuse_req_userdata(req);
++	lli->ll = DL(fuse_req_userdata)(req);
+ 	if (i != SQFS_FUSE_INODE_NONE) {
+ 		err = sqfs_ll_inode(lli->ll, &lli->inode, i);
+ 		if (err)
+-			fuse_reply_err(req, ENOENT);
++			DL(fuse_reply_err)(req, ENOENT);
+ 	}
+ 	return err;
+ }
+diff --git a/nonstd-daemon.c b/nonstd-daemon.c
+index f078a7b..f8d8586 100644
+--- a/nonstd-daemon.c
++++ b/nonstd-daemon.c
+@@ -28,11 +28,16 @@
+ #include "nonstd-internal.h"
+ 
+ #include <unistd.h>
+-#include <fuse_lowlevel.h>
++
++#include "squashfuse_dlopen.h"
++#ifndef ENABLE_DLOPEN
++#	include <fuse_lowlevel.h>
++#endif
+ 
+ int sqfs_ll_daemonize(int fg) {
+ 	#if HAVE_DECL_FUSE_DAEMONIZE
+-		return fuse_daemonize(fg);
++		LOAD_SYMBOL(int,fuse_daemonize,(int foreground));
++		return DL(fuse_daemonize)(fg);
+ 	#else
+ 		return daemon(0,0);
+ 	#endif
