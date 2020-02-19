@@ -3,6 +3,11 @@
 set -x
 set -e
 
+# use English for all outputs
+# makes grepping a lot easier
+export LANGUAGE=C
+export LD_ALL=C
+
 # use RAM disk if possible
 if [ "$CI" == "" ] && [ -d /dev/shm ]; then
     TEMP_BASE=/dev/shm
@@ -32,7 +37,8 @@ cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=Debug #-DCMAKE_GENERATOR="Ninja"
 make -j$(nproc --ignore=1)
 
 # make sure the built binary is static
-env LANGUAGE=C LD_ALL=C ldd src/runtime | grep -q "not a dynamic executable" && echo "Yay, it's linked statically!" || exit 1
+readelf -d src/runtime
+readelf -d src/runtime | grep -q "There is no dynamic section in this file." && echo "Yay, it's linked statically!" || exit 1
 
 # show size of the binary
 du -sh src/runtime
