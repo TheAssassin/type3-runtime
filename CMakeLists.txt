@@ -15,6 +15,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(cmake/tools.cmake)
 include(cmake/dependencies.cmake)
 
+# build static binary
+message(STATUS "Setting up static builds")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
+
 add_subdirectory(src)
 
 add_subdirectory(tests)

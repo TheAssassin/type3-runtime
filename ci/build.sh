@@ -31,5 +31,12 @@ cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=Debug #-DCMAKE_GENERATOR="Ninja"
 # run the build
 make -j$(nproc --ignore=1)
 
+# make sure the built binary is static
+env LANGUAGE=C LD_ALL=C ldd src/runtime | grep -q "fnot a dynamic executable" && "Yay, it's linked statically!" || exit 1
+
+# show size of the binary
+du -sh src/runtime
+ls -al src/runtime
+
 # run the tests
 ctest -V
