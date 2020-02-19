@@ -17,7 +17,7 @@ include(cmake/dependencies.cmake)
 
 # build static binary
 message(STATUS "Setting up static builds")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -no-pie")
 
 add_subdirectory(src)
 
