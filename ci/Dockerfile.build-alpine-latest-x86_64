@@ -1,0 +1,5 @@
+FROM alpine:latest
+
+SHELL ["/bin/sh", "-x", "-c"]
+
+RUN apk add --no-cache gcc g++ musl-dev cmake bash make ninja

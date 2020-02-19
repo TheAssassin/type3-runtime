@@ -1,0 +1,6 @@
+FROM ubuntu:xenial
+
+SHELL ["/bin/bash", "-x", "-c"]
+
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y gcc g++ cmake make ninja

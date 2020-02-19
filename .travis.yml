@@ -1,0 +1,14 @@
+language: c
+
+services:
+  - docker
+
+matrix:
+  include:
+    - name: AMD64 Ubuntu xenial
+      env: DIST=ubuntu DIST_VERSION=xenial ARCH=x86_64
+    - name: AMD64 Alpine latest
+      env: DIST=alpine DIST_VERSION=latest ARCH=x86_64
+
+scripts:
+  - ci/build-in-docker.sh

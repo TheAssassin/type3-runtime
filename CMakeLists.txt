@@ -1,6 +1,8 @@
 # required for hassle-free C11/C++11 support
 cmake_minimum_required(VERSION 3.1)
 
+project(appimage-type3-runtime)
+
 # we use C11 for the runtime implementation
 set(CMAKE_C_STANRARD 11)
 set(CMAKE_C_STANRARD_REQUIRED ON)
