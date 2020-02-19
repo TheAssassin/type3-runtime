@@ -2,4 +2,4 @@ FROM alpine:latest
 
 SHELL ["/bin/sh", "-x", "-c"]
 
-RUN apk add --no-cache gcc g++ musl-dev cmake bash make ninja
+RUN apk add --no-cache gcc g++ musl-dev cmake bash make ninja git libtool automake autoconf pkgconf fuse-dev xz-dev zlib-dev

@@ -3,4 +3,9 @@ FROM ubuntu:xenial
 SHELL ["/bin/bash", "-x", "-c"]
 
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y gcc g++ cmake make ninja
+    apt-get install --no-install-recommends -y gcc g++ cmake make ninja git libtool automake autoconf pkgconf libfuse-dev liblzma-dev zlib1g-dev patch
+
+RUN apt-get update && \
+    apt-get install -y wget
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.17.0-rc1/cmake-3.17.0-rc1-Linux-x86_64.tar.gz -O - | \
+        tar -xz -C /usr --strip-components=1
