@@ -32,7 +32,7 @@ cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=Debug #-DCMAKE_GENERATOR="Ninja"
 make -j$(nproc --ignore=1)
 
 # make sure the built binary is static
-env LANGUAGE=C LD_ALL=C ldd src/runtime | grep -q "not a dynamic executable" && "Yay, it's linked statically!" || exit 1
+env LANGUAGE=C LD_ALL=C ldd src/runtime | grep -q "not a dynamic executable" && echo "Yay, it's linked statically!" || exit 1
 
 # show size of the binary
 du -sh src/runtime
