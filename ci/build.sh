@@ -6,7 +6,7 @@ set -e
 # use English for all outputs
 # makes grepping a lot easier
 export LANGUAGE=C
-export LD_ALL=C
+export LC_ALL=C
 
 # use RAM disk if possible
 if [ "$CI" == "" ] && [ -d /dev/shm ]; then
