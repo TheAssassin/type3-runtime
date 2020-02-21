@@ -56,16 +56,16 @@ typedef struct __attribute__((aligned(4), packed, scalar_storage_order("little-e
      * Update information is a field with a dynamic size. It contains a string used for the AppImage delta update
      * mechanism.
      */
-    uint16_t update_information_len;
     uint16_t update_information_offset;
+    uint16_t update_information_len;
 
     /*
      * AppImage signature section. Contains one or more signatures of the AppImage.
      * Verifying signatures for AppImages requires a special algorithm to allow for embedding the signature into an
      * AppImage after it has been built.
      */
-    uint16_t signature_len;
     uint16_t signature_offset;
+    uint16_t signature_len;
 
     /*
      * There are different "levels" of signatures in AppImages:
