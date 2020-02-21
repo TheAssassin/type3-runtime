@@ -18,6 +18,12 @@ include(cmake/dependencies.cmake)
 # build static binary
 message(STATUS "Setting up static builds")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -no-pie")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -no-pie")
+
+# make the compiler complain about every warning
+message(STATUS "Setting up paranoia mode")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
 
 add_subdirectory(src)
 
