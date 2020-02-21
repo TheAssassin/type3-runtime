@@ -27,7 +27,8 @@
  * should use strn* (e.g., strncmp, strncpy) to work with these values
  */
 // The struct is explicitly aligned by four bytes to ensure portability.
-typedef struct __attribute__((aligned(4), packed, scalar_storage_order("little-endian"))) {
+// TODO: specify endianness explicitly (little endian should work fine on most relevant architectures)
+typedef struct __attribute__((aligned(4), packed)) {
 
     /*
      * Size of the entire AppImage header. It could be calculated from the other values if you know the exact format.
