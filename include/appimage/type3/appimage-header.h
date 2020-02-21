@@ -2,8 +2,6 @@
 
 #include <stdint.h>
 
-#pragma scalar_storage_order little-endian
-
 /**
  * Definition of the AppImage header, a binary metadata format describing an AppImage and providing space for
  * auxiliary information such as signatures and update information.
