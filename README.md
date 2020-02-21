@@ -11,6 +11,8 @@ last years working with both.
 - Clarity on licensing: Properly licensed runtime which can be safely used
   by third party projects making sure all libraries in our dependency tree
   are used in compliance with their licenses
+- Use a permissive license that does not require any form of binary
+  attribution (e.g., the zlib/libpng license)
 - Minimum size: Like the type 2 runtime, the new type should also use < 1 MiB
   of size, ideally way less
 - Ensure strict compliance to the ELF standard: The magic bytes need to be
