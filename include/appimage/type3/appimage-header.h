@@ -1,6 +1,10 @@
 #pragma once
 
-#include <stdint.h>
+#ifdef __cplusplus
+    #include <cstdio>
+#else
+    #include <stdint.h>
+#endif
 
 /**
  * Definition of the AppImage header, a binary metadata format describing an AppImage and providing space for
