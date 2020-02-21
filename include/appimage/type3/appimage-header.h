@@ -44,6 +44,13 @@ typedef struct __attribute__((aligned(4), packed)) {
     uint8_t appimage_type;
 
     /*
+     * Payload type. The following types are supported:
+     *
+     *   - type 0: SquashFS image containing an AppDir
+     */
+    uint8_t payload_type;
+
+    /*
      * Revision of the AppImage header. The number is a monotonically increasing unsigned integer, which will be
      * incremented on any addition to this header. Existing attributes will never be removed, but new ones might be
      * appended. Checking the header revision for a minimum known value guarantees compatibility with all newer
