@@ -13,6 +13,11 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     list(APPEND COMPILE_FLAGS -no-pie)
 endif()
 
+if(CMAKE_BUILD_TYPE STRLESS_EQUAL release)
+    message(STATUS "Release build detected, adding -Os")
+    list(APPEND COMPILE_FLAGS -Os)
+endif()
+
 function(setup_target TARGET)
     message(STATUS "Setting up special build flags for target ${TARGET}")
 
