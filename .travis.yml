@@ -9,6 +9,8 @@ matrix:
       env: DIST=ubuntu DIST_VERSION=xenial ARCH=x86_64 COMPILER=gcc
     - name: AMD64 Alpine latest gcc
       env: DIST=alpine DIST_VERSION=latest ARCH=x86_64 COMPILER=gcc
+    - name: AMD64 Alpine latest clang
+      env: DIST=alpine DIST_VERSION=latest ARCH=x86_64 COMPILER=clang
 
 scripts:
   - ci/build-in-docker.sh
