@@ -16,6 +16,8 @@ include(cmake/tools.cmake)
 include(cmake/dependencies.cmake)
 
 # build static binary
+# caution: we build non-PIE binaries, which do *not* support ASLR!
+# TODO: assess security hazard caused by not using PIE
 message(STATUS "Setting up static builds")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -no-pie")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -no-pie")
