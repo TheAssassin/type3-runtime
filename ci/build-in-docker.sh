@@ -7,12 +7,12 @@ set -e
 here=$(readlink -f $(dirname "$0"))
 cd "$here"
 
-if [[ "$DIST" == "" ]] || [[ "$DIST_VERSION" == "" ]] || [[ "$ARCH" == "" ]]; then
-    echo "Usage: env DIST=... DIST_VERSION=... ARCH=... $0"
+if [[ "$DIST" == "" ]] || [[ "$DIST_VERSION" == "" ]] || [[ "$ARCH" == "" ]] || [[ "$COMPILER" == "" ]]; then
+    echo "Usage: env DIST=... DIST_VERSION=... ARCH=... COMPILER=... $0"
     exit 2
 fi
 
-DOCKERFILE=Dockerfile.build-"$DIST"-"$DIST_VERSION"-"$ARCH"
+DOCKERFILE=Dockerfile.build-"$DIST"-"$DIST_VERSION"-"$ARCH"-"$COMPILER"
 
 if [[ ! -f "$DOCKERFILE" ]]; then
     echo "Error: could not find corresponding Dockerfile: $DOCKERFILE"
