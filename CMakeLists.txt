@@ -15,6 +15,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(cmake/tools.cmake)
 include(cmake/dependencies.cmake)
 
+# set up reproducible builds in release mode
+include(cmake/reproducible_builds.cmake)
+
 # make the compiler complain about every warning
 message(STATUS "Setting up paranoia mode")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
