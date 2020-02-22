@@ -18,9 +18,11 @@ include(cmake/dependencies.cmake)
 # build static binary
 # caution: we build non-PIE binaries, which do *not* support ASLR!
 # TODO: assess security hazard caused by not using PIE
+# we use -no-pie and -flto to reduce the size of the resulting binary
+# TODO: set up squashfuse build as an OBJECT library in CMake to improve the LTO result
 message(STATUS "Setting up static builds")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -no-pie")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -no-pie")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static -no-pie -flto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -no-pie -flto")
 
 # make the compiler complain about every warning
 message(STATUS "Setting up paranoia mode")
