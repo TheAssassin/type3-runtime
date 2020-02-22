@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef __cplusplus
-    #include <cstdio>
+    #include <cstdint>
 #else
     #include <stdint.h>
 #endif
