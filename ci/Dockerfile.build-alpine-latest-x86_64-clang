@@ -3,6 +3,6 @@ FROM alpine:latest
 SHELL ["/bin/sh", "-x", "-c"]
 
 # even though we want to use clang, we need gcc installed as well, otherwise the ld command is not available and clang won't work
-RUN apk add --no-cache clang gcc g++ musl-dev cmake bash make ninja git libtool automake autoconf pkgconf fuse-dev xz-dev zlib-dev
+RUN apk add --no-cache clang llvm9-dev gcc g++ musl-dev cmake bash make ninja git libtool automake autoconf pkgconf fuse-dev xz-dev zlib-dev
 
 ENV CC=clang CXX=clang++
