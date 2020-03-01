@@ -31,7 +31,7 @@ OLD_CWD=$(readlink -f .)
 pushd "$BUILD_DIR"
 
 # configure build
-cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=Debug #-DCMAKE_GENERATOR="Ninja"
+cmake "$REPO_ROOT" -DCMAKE_BUILD_TYPE=MinSizeRel #-DCMAKE_GENERATOR="Ninja"
 
 # run the build
 make -j$(nproc --ignore=1)

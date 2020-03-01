@@ -20,11 +20,6 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     list(APPEND COMPILE_FLAGS -Wl,--gc-sections -Wl,--print-gc-sections)
 endif()
 
-if(CMAKE_BUILD_TYPE STRLESS_EQUAL release AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    message(STATUS "Release build using gcc detected, adding -Os")
-    list(APPEND COMPILE_FLAGS -Os)
-endif()
-
 function(setup_target TARGET)
     message(STATUS "Setting up special build flags for target ${TARGET}")
 
