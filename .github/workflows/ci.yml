@@ -1,0 +1,94 @@
+name: "build"
+
+on:
+  push:
+    branches-ignore:
+      - master
+    tags-ignore:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        TARGET_ARCH: [ i386, x86_64, gnueabihf, aarch64 ]
+        BUILD_TYPE: [ Debug, Release ]
+    env:
+      BUILD_TYPE: ${{ matrix.BUILD_TYPE }}
+      TARGET_ARCH: ${{ matrix.TARGET_ARCH }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ cmake make git libtool automake autoconf pkgconf libfuse-dev liblzma-dev \
+            zlib1g-dev patch qemu-user-binfmt
+
+      - name: Install cross-compilation dependencies ${{ matrix.TARGET_ARCH }}
+        if: ${{ env.TARGET_ARCH != 'x86_64' }}
+        run: |
+          if [ "$TARGET_ARCH" == "i386" ]; then
+            sudo dpkg --add-architecture i386;
+            sudo apt-get update -y || true;
+            sudo apt-get install g++-multilib libc6-dev-i386 libfuse-dev:i386 liblzma-dev:i386
+            exit 0
+          fi
+
+          if [ "$TARGET_ARCH" == "gnueabihf" ]; then
+            export TARGET_DEB_ARCH="armhf";
+          fi
+
+          if [ "$TARGET_ARCH" == "aarch64" ]; then
+            export TARGET_DEB_ARCH="arm64";
+          fi
+          sudo dpkg --add-architecture $TARGET_DEB_ARCH;
+          echo "deb [arch=$TARGET_DEB_ARCH] http://ports.ubuntu.com/ubuntu-ports xenial main restricted multiverse universe" | sudo tee -a /etc/apt/sources.list;
+          echo "deb [arch=$TARGET_DEB_ARCH] http://ports.ubuntu.com/ubuntu-ports xenial-updates main restricted multiverse universe" | sudo tee -a /etc/apt/sources.list;
+          echo "deb [arch=$TARGET_DEB_ARCH] http://ports.ubuntu.com/ubuntu-ports xenial-security main restricted multiverse universe" | sudo tee -a /etc/apt/sources.list;
+          sudo apt-get update -y || true;
+          sudo apt-get install -y crossbuild-essential-$TARGET_DEB_ARCH;
+
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake ${{ matrix.TARGET_ARCH }}
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          if [ "$TARGET_ARCH" == "i386" ]; then
+            export CFLAGS=-m32;
+            export PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig:$PKG_CONFIG_PATH
+          fi
+          cmake $GITHUB_WORKSPACE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+            -DCMAKE_TOOLCHAIN_FILE="cmake/toolchains/$TARGET_ARCH.cmake"
+
+      - name: Build ${{ matrix.TARGET_ARCH }}
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: |
+          if [ "$TARGET_ARCH" == "i386" ]; then
+            export CFLAGS=-m32;
+            export PKG_CONFIG_PATH=/usr/lib/i386-linux-gnu/pkgconfig:$PKG_CONFIG_PATH
+          fi
+          cmake --build . --config $BUILD_TYPE
+
+      - name: Test ${{ matrix.TARGET_ARCH }}
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: ctest -C $BUILD_TYPE -E test_appimage_header
+
+      - name: Prepare artifacts
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          mkdir -p ../dist
+          cp src/runtime ../dist/runtime-$BUILD_TYPE-$TARGET_ARCH
+
+      - name: Upload Artifacts ${{ env.TARGET_ARCH }}
+        uses: actions/upload-artifact@v2.1.4
+        with:
+          name: artifacts
+          path: ${{runner.workspace}}/dist/*

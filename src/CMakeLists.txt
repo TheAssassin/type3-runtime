@@ -25,9 +25,12 @@ function(setup_target TARGET)
 
     target_compile_options(${TARGET} PUBLIC ${COMPILE_FLAGS})
     target_link_options(${TARGET} PUBLIC ${COMPILE_FLAGS})
+
+    # add magic bytes section to the final executable
+    target_link_options(${TARGET} PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/magic_bytes.ld)
 endfunction()
 
-add_executable(runtime runtime.c)
+add_executable(runtime runtime.c magic_bytes.ld)
 target_link_libraries(runtime PRIVATE appimage_type3_header)
 target_link_libraries(runtime PRIVATE libsquashfuse)
 setup_target(runtime)
