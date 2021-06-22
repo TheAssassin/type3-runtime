@@ -1,5 +1,6 @@
+add_executable(test_appimage_section test_appimage_section.c)
+add_test(test_appimage_section test_appimage_section ${CMAKE_BINARY_DIR}/src/runtime)
+
 add_executable(test_appimage_header test_appimage_header.cpp)
 target_link_libraries(test_appimage_header PRIVATE catch2 appimage_type3_header)
 add_test(test_appimage_header test_appimage_header)
-
-add_test(test_appimage_magic_bytes ${CMAKE_CURRENT_SOURCE_DIR}/test_appimage_magic_bytes.sh ${CMAKE_BINARY_DIR}/src/runtime)

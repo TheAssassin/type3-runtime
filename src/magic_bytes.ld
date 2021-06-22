@@ -6,6 +6,7 @@ SECTIONS
     BYTE(0x41);
     BYTE(0x49);
     BYTE(0x03);
+    BYTE(0x00); /* padding byte */
     SHORT(0x01); /* header revision */
     SHORT(0x01); /* payload format */
     QUAD(0xAA); /* payload offset */
