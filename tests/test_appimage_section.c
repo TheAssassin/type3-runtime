@@ -33,10 +33,11 @@ int main(int argc, char* argv[]) {
     }
 
     char* raw_data = (char*) &header;
-    fprintf(stdout, "read data: ");
+    fprintf(stderr, "read data: ");
     for (int i = 0; i < sizeof(header); i++)
-        fprintf(stdout, "%x", (unsigned char) *(raw_data + i));
-    fprintf(stdout, "\n");
+        fprintf(stderr, "%x", (unsigned char) *(raw_data + i));
+    fprintf(stderr, "\n");
+    fflush(stderr);
 
     assert(header.appimage_magic[0] == 0x41);
     assert(header.appimage_magic[1] == 0x49);
