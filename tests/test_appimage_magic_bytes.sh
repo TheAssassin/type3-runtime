@@ -22,5 +22,5 @@ fi
 check_bytes "Magic Bytes" "414903" 0x400
 check_bytes "Header Revision" "0100" 0x403
 check_bytes "Payload Format" "0100" 0x405
-check_bytes "Payload Offset" "aaaaaaaa00000000" 0x407
-check_bytes "Signature Offset" "aaaaaaaa00000000" 0x40F
+check_bytes "Payload Offset" "aa00000000000000" 0x407
+check_bytes "Signature Offset" "aa00000000000000" 0x40F
