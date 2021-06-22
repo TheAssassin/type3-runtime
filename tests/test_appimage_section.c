@@ -19,9 +19,10 @@ int main(int argc, char* argv[]) {
     appimage_header_t header;
     char* filename = argv[1];
     FILE* in = fopen(filename, "rb");
+    size_t bytes_read = 0;
     if (in != NULL) {
         fseek(in, 0x400, SEEK_SET);
-        size_t bytes_read = fread(&header, sizeof(appimage_header_t), 1, in);
+        bytes_read = fread(&header, sizeof(appimage_header_t), 1, in);
         fclose(in);
         if (bytes_read == 0) {
             fprintf(stderr, "Unable to read target file contents %s", filename);
@@ -30,6 +31,12 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Unable to open target file %s", filename);
         return -1;
     }
+
+    char* raw_data = (char*) &header;
+    fprintf(stdout, "read data: ");
+    for (int i = 0; i < sizeof(header); i++)
+        fprintf(stdout, "%x", (unsigned char) *(raw_data + i));
+    fprintf(stdout, "\n");
 
     assert(header.appimage_magic[0] == 0x41);
     assert(header.appimage_magic[1] == 0x49);
