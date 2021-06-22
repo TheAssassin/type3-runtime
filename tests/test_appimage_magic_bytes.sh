@@ -11,10 +11,10 @@ function check_bytes() {
 
   FILE_SECTION=$(xxd -seek $OFFSET -l $EXPECTED_LEN  -ps $TARGET_FILE)
 
-  if [ "$EXPECTED_HEX" = "${FILE_SECTION}" ]; then
+  if [ "$EXPECTED_HEX" = "$FILE_SECTION" ]; then
     echo "$FIELD_NAME (0x$EXPECTED_HEX) found at offset $OFFSET."
   else
-    echo "Missing $FIELD_NAME (0x$EXPECTED_HEX) at offset $OFFSET."
+    echo "Wrong $FIELD_NAME (0x$EXPECTED_HEX) at offset $OFFSET. Found $FILE_SECTION"
   exit 1
 fi
 }
