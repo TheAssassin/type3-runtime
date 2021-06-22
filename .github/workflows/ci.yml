@@ -78,7 +78,7 @@ jobs:
       - name: Test ${{ matrix.TARGET_ARCH }}
         working-directory: ${{runner.workspace}}/build
         shell: bash
-        run: ctest -C $BUILD_TYPE -E test_appimage_header
+        run: ctest -C $BUILD_TYPE -E test_appimage_header --output-on-failure
 
       - name: Prepare artifacts
         shell: bash
