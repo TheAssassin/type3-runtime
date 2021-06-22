@@ -6,8 +6,8 @@ typedef struct {
     unsigned char appimage_magic[3];
     unsigned short header_revision;
     unsigned short payload_format;
-    size_t payload_offset;
-    size_t signature_offset;
+    off_t payload_offset;
+    off_t  signature_offset;
 } appimage_header_t;
 
 int main(int argc, char* argv[]) {
