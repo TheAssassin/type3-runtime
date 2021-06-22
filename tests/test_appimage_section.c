@@ -21,8 +21,11 @@ int main(int argc, char* argv[]) {
     FILE* in = fopen(filename, "rb");
     if (in != NULL) {
         fseek(in, 0x400, SEEK_SET);
-        fread(&header, sizeof(appimage_header_t), 1, in);
+        size_t bytes_read = fread(&header, sizeof(appimage_header_t), 1, in);
         fclose(in);
+        if (bytes_read == 0) {
+            fprintf(stderr, "Unable to read target file contents %s", filename);
+        }
     } else {
         fprintf(stderr, "Unable to open target file %s", filename);
         return -1;
