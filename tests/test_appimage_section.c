@@ -6,8 +6,8 @@ typedef struct {
     unsigned char appimage_magic[3];
     unsigned short header_revision;
     unsigned short payload_format;
-    off_t payload_offset;
-    off_t  signature_offset;
+    off_t payload_offset __attribute__ ((aligned (8)));
+    off_t  signature_offset __attribute__ ((aligned (8)));
 } appimage_header_t;
 
 int main(int argc, char* argv[]) {
@@ -31,6 +31,10 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Unable to open target file %s", filename);
         return -1;
     }
+
+
+    printf("header size: %zu\n", sizeof(header));
+    assert(sizeof(header) == 24);
 
     char* raw_data = (char*) &header;
     fprintf(stderr, "read data: ");
