@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     FILE* in = fopen(filename, "rb");
     size_t bytes_read = 0;
     if (in != NULL) {
-        fseek(in, 0x400, SEEK_SET);
+        fseek(in, 0x200, SEEK_SET);
         bytes_read = fread(&header, sizeof(appimage_header_t), 1, in);
         fclose(in);
         if (bytes_read == 0) {
