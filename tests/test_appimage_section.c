@@ -2,13 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-typedef struct {
-    unsigned char appimage_magic[3];
-    unsigned short header_revision;
-    unsigned short payload_format;
-    off_t payload_offset __attribute__ ((aligned (8)));
-    off_t  signature_offset __attribute__ ((aligned (8)));
-} appimage_header_t;
+#include "../include/appimage-header.h"
+
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -21,7 +16,7 @@ int main(int argc, char* argv[]) {
     FILE* in = fopen(filename, "rb");
     size_t bytes_read = 0;
     if (in != NULL) {
-        fseek(in, 0x200, SEEK_SET);
+        fseek(in, 0x400, SEEK_SET);
         bytes_read = fread(&header, sizeof(appimage_header_t), 1, in);
         fclose(in);
         if (bytes_read == 0) {

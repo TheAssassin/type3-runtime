@@ -1,5 +1,3 @@
-add_subdirectory(header)
-
 # caution: we build non-PIE binaries, which do *not* support ASLR!
 # we use -no-pie, -flto, -fdata-sections ... and --gc-sections to reduce the size of the resulting binary
 # TODO: assess security hazard caused by not using PIE
@@ -27,10 +25,13 @@ function(setup_target TARGET)
     target_link_options(${TARGET} PUBLIC ${COMPILE_FLAGS})
 
     # add magic bytes section to the final executable
-    target_link_options(${TARGET} PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/magic_bytes.ld)
+    target_link_options(${TARGET} PRIVATE -T ${CMAKE_CURRENT_SOURCE_DIR}/magic_bytes.ld )
 endfunction()
 
+add_library(appimage_type3_header OBJECT ${PROJECT_SOURCE_DIR}/include/appimage-header.h)
+target_include_directories(appimage_type3_header PUBLIC ${PROJECT_SOURCE_DIR}/include)
+
 add_executable(runtime runtime.c magic_bytes.ld)
-target_link_libraries(runtime PRIVATE appimage_type3_header)
 target_link_libraries(runtime PRIVATE libsquashfuse)
 setup_target(runtime)
+
