@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 #include "../include/appimage-header.h"
 
@@ -27,23 +28,24 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-
-    printf("header size: %zu\n", sizeof(header));
-    assert(sizeof(header) == 24);
-
     char* raw_data = (char*) &header;
     fprintf(stderr, "read data: ");
+    fprintf(stderr, "\n");
     for (int i = 0; i < sizeof(header); i++)
-        fprintf(stderr, "%x", (unsigned char) *(raw_data + i));
+        fprintf(stderr, "%02x ", (unsigned char) *(raw_data + i));
+    fprintf(stderr, "\n");
+    for (int i = 0; i < sizeof(header); i++)
+        fprintf(stderr, " %c ", (unsigned char) *(raw_data + i));
     fprintf(stderr, "\n");
     fflush(stderr);
 
-    assert(header.appimage_magic[0] == 0x41);
-    assert(header.appimage_magic[1] == 0x49);
-    assert(header.appimage_magic[2] == 0x03);
+    printf("header size: %zu\n", sizeof(header));
+    assert(sizeof(header) == 40);
 
-    assert(header.header_revision == 0x01);
+    assert(memcmp(header.appimage_magic, "AppImageFile", 12) == 0);
+    assert(header.header_revision == 0x03);
     assert(header.payload_format == 0x01);
-    assert(header.payload_offset == 0xaa);
-    assert(header.signature_offset == 0xaa);
+    assert(header.payload_offset == 0x0);
+    assert(header.resources_offset == 0x0);
+    assert(header.signature_offset == 0x0);
 }
