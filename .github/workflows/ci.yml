@@ -85,7 +85,7 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           mkdir -p ../dist
-          cp src/runtime ../dist/runtime-$BUILD_TYPE-$TARGET_ARCH
+          cp src/runtime/runtime ../dist/runtime-$BUILD_TYPE-$TARGET_ARCH
 
       - name: Upload Artifacts ${{ env.TARGET_ARCH }}
         uses: actions/upload-artifact@v2.1.4
