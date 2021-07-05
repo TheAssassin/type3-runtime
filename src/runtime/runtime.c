@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "../commands/commands.h"
+#include "appimage-header.h"
 
 int main() {
     char* target = "/proc/self/exe";
